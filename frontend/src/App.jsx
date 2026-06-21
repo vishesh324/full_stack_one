@@ -17,10 +17,13 @@ function App() {
   const [stories, setStories] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const [speakingId, setSpeakingId] = useState(null); // tracks which story is currently being read aloud
+
   const generateStory = async () => {
     setLoading(true);
     setStory("");
     setSaved(false);
+    stopSpeaking();
 
     const response = await fetch(`${API_URL}/api/story`, {
       method: "POST",
@@ -49,6 +52,7 @@ function App() {
   const loadHistory = async () => {
     setView("history");
     setLoadingHistory(true);
+    stopSpeaking();
 
     const response = await fetch(`${API_URL}/api/stories`);
     const data = await response.json();
@@ -63,6 +67,34 @@ function App() {
     });
 
     setStories(stories.filter((s) => s.id !== id));
+  };
+
+  // Stops any speech currently playing
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setSpeakingId(null);
+  };
+
+  // Reads the given text aloud, or stops if this same id is already speaking
+  const speakStory = (text, id) => {
+    // If this exact story is already being read, clicking again stops it
+    if (speakingId === id) {
+      stopSpeaking();
+      return;
+    }
+
+    // Cancel any other speech first
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9; // slightly slower, gentler pace for a bedtime story
+    utterance.pitch = 1;
+
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
+
+    window.speechSynthesis.speak(utterance);
+    setSpeakingId(id);
   };
 
   return (
@@ -108,13 +140,23 @@ function App() {
             {story && (
               <>
                 <div className="story">{story}</div>
-                <button
-                  className="button saveButton"
-                  onClick={saveStory}
-                  disabled={saving || saved}
-                >
-                  {saved ? "✅ Saved!" : saving ? "Saving..." : "💾 Save Story"}
-                </button>
+
+                <div className="storyActions">
+                  <button
+                    className="button saveButton"
+                    onClick={saveStory}
+                    disabled={saving || saved}
+                  >
+                    {saved ? "✅ Saved!" : saving ? "Saving..." : "💾 Save Story"}
+                  </button>
+
+                  <button
+                    className="button speakButton"
+                    onClick={() => speakStory(story, "current")}
+                  >
+                    {speakingId === "current" ? "⏹ Stop" : "🔊 Read Aloud"}
+                  </button>
+                </div>
               </>
             )}
           </>
@@ -136,9 +178,18 @@ function App() {
                   {s.character_name} • {s.location_name} • {s.theme}
                 </p>
                 <p className="historyStory">{s.story}</p>
-                <button className="deleteButton" onClick={() => deleteStory(s.id)}>
-                  🗑️ Delete
-                </button>
+
+                <div className="historyActions">
+                  <button
+                    className="speakButton small"
+                    onClick={() => speakStory(s.story, s.id)}
+                  >
+                    {speakingId === s.id ? "⏹ Stop" : "🔊 Read Aloud"}
+                  </button>
+                  <button className="deleteButton" onClick={() => deleteStory(s.id)}>
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
             ))}
           </>
