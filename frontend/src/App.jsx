@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./App.css";
 
+const API_URL = "https://bedtime-story-backend-3scv.onrender.com";
 
 function App() {
   const [view, setView] = useState("home"); // "home" or "history"
@@ -21,7 +22,7 @@ function App() {
     setStory("");
     setSaved(false);
 
-    const response = await fetch("http://localhost:3000/api/story", {
+    const response = await fetch(`${API_URL}/api/story`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ character, location, theme }),
@@ -35,7 +36,7 @@ function App() {
   const saveStory = async () => {
     setSaving(true);
 
-    await fetch("http://localhost:3000/api/save", {
+    await fetch(`${API_URL}/api/save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ character, location, theme, story }),
@@ -49,7 +50,7 @@ function App() {
     setView("history");
     setLoadingHistory(true);
 
-    const response = await fetch("http://localhost:3000/api/stories");
+    const response = await fetch(`${API_URL}/api/stories`);
     const data = await response.json();
     setStories(data);
 
@@ -57,7 +58,7 @@ function App() {
   };
 
   const deleteStory = async (id) => {
-    await fetch(`http://localhost:3000/api/stories/${id}`, {
+    await fetch(`${API_URL}/api/stories/${id}`, {
       method: "DELETE",
     });
 
